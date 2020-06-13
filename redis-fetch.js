@@ -59,7 +59,9 @@ const fetchCampaigns = async () => {
 					if (diff > 0) {
 						campagins[keyId] = campaignBudget;
 						const newBudget = +budget - diff;
-						console.log(`   ${key} was ${budget} now -> ${newBudget} `);
+						if (process.env.NODE_ENV !== "test") {
+							console.log(`   ${key} was ${budget} now -> ${newBudget} `);
+						}
 						redisClient.set(key, newBudget);
 					}
 				});
@@ -79,8 +81,8 @@ const registerInstance = async () => {
 			if (err) {
 				throw err;
 			}
-
-			redisClient.set("instances", +instancesCounter + 1);
+			const instancesC = instancesCounter ? +instancesCounter : 0
+			redisClient.set("instances", instancesC + 1);
 		});
 		return lock.unlock();
 	} catch (error) {
@@ -96,6 +98,8 @@ const unregisterInstance = async () => {
 				throw err;
 			}
 
+			
+
 			redisClient.set("instances", +instancesCounter - 1);
 		});
 		return lock.unlock();
@@ -104,4 +108,8 @@ const unregisterInstance = async () => {
 	}
 };
 
-module.exports = { campagins, redisClient, fetchCampaigns, registerInstance, unregisterInstance };
+const closeInstnace = () => {
+	redisClient.quit();
+}
+
+module.exports = { campagins, redisClient, fetchCampaigns, registerInstance, unregisterInstance, closeInstnace };

@@ -2,7 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 require("dotenv").config();
 
-const { fetchCampaigns, campagins, registerInstance, unregisterInstance } = require("./redis-fetch");
+const { fetchCampaigns, campagins, registerInstance, unregisterInstance, closeInstnace } = require("./redis-fetch");
 
 const PORT = process.env.PORT || 3000;
 const FETCH_INTERVAL = process.env.FETCH_INTERVAL || 10000;
@@ -15,20 +15,19 @@ app.use(bodyParser.json());
 app.use("/api", routes);
 
 const init = async () => {
-    try {
-        await registerInstance();
-        await fetchCampaigns();
-        
-		setInterval(fetchCampaigns, FETCH_INTERVAL);    
-    } catch (error) {
-        console.log('Error initializing server', error);
-    }
-    
-}
+	try {
+		await registerInstance();
+		await fetchCampaigns();
 
+		setInterval(fetchCampaigns, FETCH_INTERVAL);
+	} catch (error) {
+		console.log("Error initializing server", error);
+	}
+};
 
 const exitHandler = async () => {
 	await unregisterInstance();
+	closeInstnace();
 	process.exit();
 };
 
@@ -43,11 +42,16 @@ process.on("SIGUSR2", exitHandler);
 
 // catches uncaught exceptions
 process.on("uncaughtException", (e) => {
-    console.log('UncaughtException ', e.stack);
-    exitHandler();
+	console.log("UncaughtException ", e.stack);
+	exitHandler();
 });
 
 init();
-app.listen(PORT, () => {
-	console.log(`Server is listening at ${PORT}`);
-});
+if (process.env.NODE_ENV !== "test") {
+	app.listen(PORT, () => {
+		console.log(`Server is listening at ${PORT}`);
+	});
+
+}
+
+module.exports = { app };

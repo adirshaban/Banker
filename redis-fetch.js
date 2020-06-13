@@ -66,10 +66,42 @@ const fetchCampaigns = async () => {
 			}
 		});
 
-		lock.unlock();
+		return lock.unlock();
 	} catch (error) {
 		console.log("Error occurred while fetching campaigns", error);
 	}
 };
 
-module.exports = { campagins, redisClient, fetchCampaigns };
+const registerInstance = async () => {
+	try {
+		const lock = await redlock.lock("lock:instances", 2000);
+		redisClient.get("instances", (err, instancesCounter) => {
+			if (err) {
+				throw err;
+			}
+
+			redisClient.set("instances", +instancesCounter + 1);
+		});
+		return lock.unlock();
+	} catch (error) {
+		console.log("Error while registering instance", error);
+	}
+};
+
+const unregisterInstance = async () => {
+	try {
+		const lock = await redlock.lock("lock:instances", 2000);
+		redisClient.get("instances", (err, instancesCounter) => {
+			if (err) {
+				throw err;
+			}
+
+			redisClient.set("instances", +instancesCounter - 1);
+		});
+		return lock.unlock();
+	} catch (error) {
+		console.log("Error while registering instance", error);
+	}
+};
+
+module.exports = { campagins, redisClient, fetchCampaigns, registerInstance, unregisterInstance };
